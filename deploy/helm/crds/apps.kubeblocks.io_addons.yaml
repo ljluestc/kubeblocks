@@ -1,47 +1,42 @@
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: nodecountscalers.experimental.kubeblocks.io
+  labels:
+    app.kubernetes.io/name: kubeblocks
+  name: addons.apps.kubeblocks.io
 spec:
-  group: experimental.kubeblocks.io
+  group: apps.kubeblocks.io
   names:
-    categories:
-    - kubeblocks
-    kind: NodeCountScaler
-    listKind: NodeCountScalerList
-    plural: nodecountscalers
+    kind: Addon
+    listKind: AddonList
+    plural: addons
     shortNames:
-    - ncs
-    singular: nodecountscaler
-  scope: Namespaced
+    - ad
+    singular: addon
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - description: target cluster name.
-      jsonPath: .spec.targetClusterName
-      name: TARGET-CLUSTER-NAME
+    - description: namespace for installed
+      jsonPath: .spec.namespace
+      name: NAMESPACE
       type: string
-    - description: scale ready.
-      jsonPath: .status.conditions[?(@.type=="ScaleReady")].status
-      name: READY
+    - description: addon type
+      jsonPath: .spec.type
+      name: TYPE
       type: string
-    - description: reason.
-      jsonPath: .status.conditions[?(@.type=="ScaleReady")].reason
-      name: REASON
+    - description: addon phase
+      jsonPath: .status.phase
+      name: PHASE
       type: string
-    - description: message.
-      jsonPath: .status.conditions[?(@.type=="ScaleReady")].message
-      name: MESSAGE
-      type: string
-    - jsonPath: .status.lastScaleTime
-      name: LAST-SCALE-TIME
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
       type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: NodeCountScaler is the Schema for the nodecountscalers API
+        description: Addon is the Schema for the addons API
         properties:
           apiVersion:
             description: |-
@@ -61,67 +56,90 @@ spec:
           metadata:
             type: object
           spec:
-            description: NodeCountScalerSpec defines the desired state of NodeCountScaler
+            description: AddonSpec defines the desired state of Addon
             properties:
-              targetClusterName:
-                description: Specified the target Cluster name this scaler applies
-                  to.
-                type: string
-              targetComponentNames:
-                description: |-
-                  Specified the target Component names this scaler applies to.
-                  All Components will be applied if not set.
+              defaultInstallValues:
+                additionalProperties:
+                  type: string
+                description: DefaultInstallValues is the addon default install parameters.
+                type: object
+              dependencies:
+                description: Dependencies lists the names of other Addons that must
+                  be installed before this one.
                 items:
                   type: string
                 type: array
-            required:
-            - targetClusterName
+              description:
+                description: Description is the description of the addon.
+                type: string
+              helm:
+                description: Helm is the addon helm chart spec.
+                properties:
+                  chartLocationURL:
+                    description: ChartLocationURL is the location of the helm chart.
+                    type: string
+                  chartName:
+                    description: ChartName is the name of the helm chart.
+                    type: string
+                  chartVersion:
+                    description: ChartVersion is the version of the helm chart.
+                    type: string
+                  values:
+                    description: Values is the helm chart values in raw yaml.
+                    type: string
+                  valuesFiles:
+                    description: ValuesFiles is the list of helm values files.
+                    items:
+                      type: string
+                    type: array
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              install:
+                description: InstallSpec is the addon install spec.
+                properties:
+                  environment:
+                    additionalProperties:
+                      type: string
+                    description: Environment is the environment variables to be set
+                      for install.
+                    type: object
+                  resources:
+                    description: Resources is a list of resources to be installed.
+                    items:
+                      type: string
+                    type: array
+                  serviceAccount:
+                    description: ServiceAccount is the service account name to be
+                      used for install.
+                    type: string
+                type: object
+              namespace:
+                description: Namespace is the namespace to install the helm chart.
+                  if it's empty, will be installed to the same namespace as kubeblocks.
+                type: string
+              selector:
+                description: Selector is the addon selector.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations is the selector to match addon annotations.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels is the selector to match addon labels.
+                    type: object
+                type: object
+              type:
+                description: Type is the type of the addon.
+                type: string
             type: object
           status:
-            description: NodeCountScalerStatus defines the observed state of NodeCountScaler
+            description: AddonStatus defines the observed state of Addon
             properties:
-              componentStatuses:
-                description: Records the current status information of all Components
-                  specified in the NodeCountScalerSpec.
-                items:
-                  properties:
-                    availableReplicas:
-                      description: The number of instances of this component with
-                        a Ready condition for at least MinReadySeconds defined in
-                        the instance template.
-                      format: int32
-                      type: integer
-                    currentReplicas:
-                      description: The current number of instances of this component.
-                      format: int32
-                      type: integer
-                    desiredReplicas:
-                      description: |-
-                        The desired number of instances of this component.
-                        Usually, it should be the number of nodes.
-                      format: int32
-                      type: integer
-                    name:
-                      description: Specified the Component name.
-                      type: string
-                    readyReplicas:
-                      description: The number of instances of this component with
-                        a Ready condition.
-                      format: int32
-                      type: integer
-                  required:
-                  - availableReplicas
-                  - currentReplicas
-                  - desiredReplicas
-                  - name
-                  - readyReplicas
-                  type: object
-                type: array
               conditions:
-                description: |-
-                  Represents the latest available observations of a nodecountscaler's current state.
-                  Known .status.conditions.type are: "ScaleReady".
-                  ScaleReady - All target components are ready.
+                description: Conditions is an array of current observed addon conditions.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource.\n---\nThis struct is intended for
@@ -190,13 +208,16 @@ spec:
                   - type
                   type: object
                 type: array
-                x-kubernetes-list-map-keys:
-                - type
-                x-kubernetes-list-type: map
-              lastScaleTime:
-                description: LastScaleTime is the last time the NodeCountScaler scaled
-                  the number of instances.
-                format: date-time
+              helmRelease:
+                description: HelmRelease is the helm release name of the addon.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the most recent generation observed
+                  for this addon.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the phase of the addon
                 type: string
             type: object
         type: object
