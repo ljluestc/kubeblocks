@@ -46,6 +46,8 @@ import (
 	viper "github.com/apecloud/kubeblocks/pkg/viperx"
 )
 
+var logger logr.Logger
+
 const (
 	defaultCronExpression             = "0 18 * * *"
 	disableSyncFromTemplateAnnotation = "dataprotection.kubeblocks.io/disable-sync-from-template"
@@ -89,6 +91,9 @@ func (r *BackupPolicyDriverReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	if err := r.reconcile(reqCtx, cluster); err != nil {
 		r.Recorder.Eventf(cluster, corev1.EventTypeWarning, "ReconcileBackupPolicyFail", "failed to reconcile: %v", err)
+		// Log the error in controller logs as well
+		reqCtx.Log.Error(err, "failed to reconcile backup policy",
+			"backupPolicy", req.NamespacedName.String())
 		return intctrlutil.CheckedRequeueWithError(err, reqCtx.Log, "")
 	}
 	return intctrlutil.Reconciled()
@@ -149,6 +154,7 @@ func (r *BackupPolicyDriverReconciler) transformComponentBackupPolicyAndSchedule
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *BackupPolicyDriverReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	logger = log.Log.WithName("controllers").WithName("BackupPolicyDriver")
 	return intctrlutil.NewControllerManagedBy(mgr).
 		For(&appsv1.Cluster{}).
 		Owns(&dpv1alpha1.BackupPolicy{}).
