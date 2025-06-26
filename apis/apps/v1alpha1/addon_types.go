@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -155,3 +156,10 @@ type AddonList struct {
 func init() {
 	SchemeBuilder.Register(&Addon{}, &AddonList{})
 }
+
+// Ensure Addon implements webhook.Validator (compile-time check)
+var _ interface {
+	ValidateCreate() error
+	ValidateUpdate(old interface{}) error
+	ValidateDelete() error
+} = &Addon{}

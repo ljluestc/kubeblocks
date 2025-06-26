@@ -76,6 +76,37 @@ func (r *Addon) ValidateCreate() error {
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Addon) ValidateUpdate(old runtime.Object) error {
 	addonlog.Info("validate update", "name", r.Name)
+
+	// Validate mandatory fields
+	if r.Spec.Helm == nil {
+		return fmt.Errorf("helm is required in addon spec")
+	}
+
+	// Validate helm chart location
+	if err := validateHelmLocation(r.Spec.Helm); err != nil {
+		return err
+	}
+
+	// Validate addon dependencies
+	if err := validateAddonDependencies(r); err != nil {
+		return err
+	}
+
+	// Validate mandatory fields
+	if r.Spec.Helm == nil {
+		return fmt.Errorf("helm is required in addon spec")
+	}
+
+	// Validate helm chart location
+	if err := validateHelmLocation(r.Spec.Helm); err != nil {
+		return err
+	}
+
+	// Validate addon dependencies if present
+	if err := validateAddonDependencies(r); err != nil {
+		return err
+	}
+
 	return nil
 }
 

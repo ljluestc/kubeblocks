@@ -73,7 +73,7 @@ spec:
                 description: Description is the description of the addon.
                 type: string
               helm:
-                description: Helm is the addon helm chart spec.
+                description: Helm defines the helm chart spec for the addon
                 properties:
                   chartLocationURL:
                     description: ChartLocationURL is the location of the helm chart.
@@ -95,13 +95,22 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
               install:
-                description: InstallSpec is the addon install spec.
+                description: Install defines the install spec for the addon
                 properties:
+                  enabled:
+                    description: Enabled defines whether the addon is enabled
+                    type: boolean
                   environment:
                     additionalProperties:
                       type: string
                     description: Environment is the environment variables to be set
                       for install.
+                    type: object
+                  helmInstallValues:
+                    additionalProperties:
+                      type: string
+                    description: HelmInstallValues defines the helm install values
+                      for the addon
                     type: object
                   resources:
                     description: Resources is a list of resources to be installed.
@@ -118,18 +127,111 @@ spec:
                   if it's empty, will be installed to the same namespace as kubeblocks.
                 type: string
               selector:
-                description: Selector is the addon selector.
+                description: Selector defines the selectors for the addon
                 properties:
                   annotations:
                     additionalProperties:
                       type: string
                     description: Annotations is the selector to match addon annotations.
                     type: object
+                  labelSelector:
+                    description: LabelSelector is the label selector for the addon
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
                   labels:
                     additionalProperties:
                       type: string
                     description: Labels is the selector to match addon labels.
                     type: object
+                  namespaceSelector:
+                    description: NamespaceSelector is the namespace selector for the
+                      addon
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
                 type: object
               type:
                 description: Type is the type of the addon.

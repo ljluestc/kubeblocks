@@ -1,3 +1,33 @@
+/*
+Copyright (C) 2022-2025 ApeCloud Co., Ltd
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package addon
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/spf13/cobra"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+
+	appsv1alpha1 "github.com/apecloud/kubeblocks/apis/apps/v1alpha1"
+	"github.com/apecloud/kubeblocks/pkg/cli/util/k8sconfig"
+)
+
 func install(cmd *cobra.Command, args []string) error {
 	if addonInstallOpts.all {
 		// install all addons
@@ -25,7 +55,7 @@ func install(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	selectedAddons := getSelectedAddons(addonList, args)
-	
+
 	// Include dependencies if needed
 	if !addonInstallOpts.skipDependencies {
 		selectedAddons, err = resolveDependencies(selectedAddons)
@@ -33,7 +63,7 @@ func install(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
-	
+
 	return installAddons(selectedAddons)
 }
 
@@ -44,13 +74,13 @@ func resolveDependencies(selectedAddons []string) ([]string, error) {
 	for _, addon := range selectedAddons {
 		addonMap[addon] = struct{}{}
 	}
-	
+
 	// Process all selected addons and their dependencies
 	queue := append([]string{}, selectedAddons...)
 	for len(queue) > 0 {
 		addonName := queue[0]
 		queue = queue[1:]
-		
+
 		// Get addon CR to check dependencies
 		addon := &appsv1alpha1.Addon{}
 		if err := client.Get(context.Background(), types.NamespacedName{Name: addonName}, addon); err != nil {
@@ -59,7 +89,7 @@ func resolveDependencies(selectedAddons []string) ([]string, error) {
 			}
 			return nil, err
 		}
-		
+
 		// Add dependencies to queue if not already included
 		for _, dep := range addon.Spec.Dependencies {
 			if _, exists := addonMap[dep]; !exists {
@@ -69,13 +99,13 @@ func resolveDependencies(selectedAddons []string) ([]string, error) {
 			}
 		}
 	}
-	
+
 	// Convert map back to slice
 	result := make([]string, 0, len(addonMap))
 	for addon := range addonMap {
 		result = append(result, addon)
 	}
-	
+
 	// Sort dependencies to ensure deterministic installation order
 	// This is a simple implementation; a proper topological sort would be more accurate
 	return sortAddonsWithDependencies(result)
@@ -85,7 +115,7 @@ func resolveDependencies(selectedAddons []string) ([]string, error) {
 func sortAddonsWithDependencies(addons []string) ([]string, error) {
 	client := k8sconfig.GetClientSet()
 	addonDeps := make(map[string][]string)
-	
+
 	// Build dependency graph
 	for _, addon := range addons {
 		addonObj := &appsv1alpha1.Addon{}
@@ -94,19 +124,19 @@ func sortAddonsWithDependencies(addons []string) ([]string, error) {
 		}
 		addonDeps[addon] = addonObj.Spec.Dependencies
 	}
-	
+
 	// Perform a simple dependency-based sort
 	// In a real implementation, this should be a topological sort
 	result := make([]string, 0, len(addons))
 	visited := make(map[string]bool)
-	
+
 	// Helper function for depth-first traversal
 	var visit func(string) error
 	visit = func(addon string) error {
 		if visited[addon] {
 			return nil
 		}
-		
+
 		visited[addon] = true
 		for _, dep := range addonDeps[addon] {
 			if !contains(addons, dep) {
@@ -116,11 +146,11 @@ func sortAddonsWithDependencies(addons []string) ([]string, error) {
 				return err
 			}
 		}
-		
+
 		result = append(result, addon)
 		return nil
 	}
-	
+
 	// Visit all addons
 	for _, addon := range addons {
 		if !visited[addon] {
@@ -129,7 +159,7 @@ func sortAddonsWithDependencies(addons []string) ([]string, error) {
 			}
 		}
 	}
-	
+
 	return result, nil
 }
 

@@ -1,6 +1,96 @@
 /*
 Copyright (C) 2022-2025 ApeCloud Co., Ltd
+/*
+Copyright (C) 2022-2025 ApeCloud Co., Ltd
 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1alpha1
+
+import (
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// Important Labels
+const (
+	// InstanceSetRevisionLabel is the revision label for an InstanceSet
+	InstanceSetRevisionLabel = "instanceset.kubeblocks.io/revision"
+)
+
+// InstanceSetSpec defines the desired state of InstanceSet
+type InstanceSetSpec struct {
+	// Replicas is the desired number of replicas of the given Template.
+	// Default is 1.
+	// +optional
+	// +kubebuilder:default=1
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// Template is the object that describes the pod that will be created if
+	// insufficient replicas are detected.
+	// +optional
+	Template corev1.PodTemplateSpec `json:"template,omitempty"`
+}
+
+// InstanceSetStatus defines the observed state of InstanceSet
+type InstanceSetStatus struct {
+	// ObservedGeneration is the most recent generation observed for this InstanceSet.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Replicas is the number of Pods created by the InstanceSet controller.
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// ReadyReplicas is the number of Pods created by the InstanceSet controller
+	// that have a Ready Condition.
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+
+	// CurrentRevision indicates the revision of the InstanceSet.
+	// +optional
+	CurrentRevision string `json:"currentRevision,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName=is
+// +kubebuilder:printcolumn:name="REPLICAS",type="integer",JSONPath=".spec.replicas",description="The desired number of replicas"
+// +kubebuilder:printcolumn:name="READY",type="integer",JSONPath=".status.readyReplicas",description="The number of ready replicas"
+// +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
+
+// InstanceSet is a Kubernetes custom resource that manages a set of identical Pods
+type InstanceSet struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   InstanceSetSpec   `json:"spec,omitempty"`
+	Status InstanceSetStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// InstanceSetList contains a list of InstanceSet
+type InstanceSetList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []InstanceSet `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&InstanceSet{}, &InstanceSetList{})
+}
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
